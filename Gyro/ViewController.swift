@@ -16,6 +16,7 @@ class ViewController: UIViewController {
     @IBOutlet weak var gyrox: UILabel!
     @IBOutlet weak var gyroy: UILabel!
     @IBOutlet weak var gyroz: UILabel!
+    @IBOutlet weak var trickList: UILabel!
     
     @IBOutlet weak var score: UILabel!
     @IBOutlet weak var flipTracker: UILabel!
@@ -36,10 +37,10 @@ class ViewController: UIViewController {
     var timer:Timer = Timer()
     var count:Int = 15
     var timerCounting:Bool = false
+    var tricksDone = [String]()
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        StartButton.setTitleColor(UIColor.green, for: .normal)
        // flipTracker.textColor = UIColor(red: 0, green: 100, blue: 0, alpha: 0)
         MyGyro()
         // Do any additional setup after loading the view.
@@ -49,22 +50,20 @@ class ViewController: UIViewController {
         if(timerCounting){
             timerCounting = false
             timer.invalidate()
-            StartButton.setTitle("START", for: .normal)
+            StartButton.setTitle("RESTART", for: .normal)
             let alert = UIAlertController(title: "Reset Timer?", message: "Are you sure you want to reset the game?", preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: { (_) in
-                // do nothing
+                self.timerCounting = true
             }))
             alert.addAction(UIAlertAction(title: "Yes", style: .default, handler: { (_) in
-                self.count = 15
-                self.timer.invalidate()
-                self.TimerLabel.text = self.makeTimeString(seconds: 15)
-            }))
+                self.Reset()
+                            }))
             self.present(alert, animated: true, completion : nil)
         }
         else {
             timerCounting = true
-            StartButton.setTitle("START", for: .normal)
-            StartButton.setTitleColor(UIColor.red, for: .normal)
+            StartButton.setTitle("RESTART", for: .normal)
+            StartButton.tintColor = UIColor.systemRed
             timer = Timer.scheduledTimer(timeInterval: 1, target: self, selector: #selector(timerCounter), userInfo: nil, repeats: true)
         }
     }
@@ -79,10 +78,13 @@ class ViewController: UIViewController {
             self.timer.invalidate()
             let alert = UIAlertController(title: "Game Over", message: "Your score is: \(scoreNum) would you like to play again?", preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: "No", style: .cancel, handler: { (_) in
-                // do nothing
+                self.Reset()
+                self.timerCounting = false
             }))
             alert.addAction(UIAlertAction(title: "Yes", style: .default, handler: { (_) in
                 self.Reset()
+            //    self.StartButton.setTitle("START", for: .normal)
+            //    self.StartButton.setTitleColor(UIColor.blue, for: .normal)
             }))
             self.present(alert, animated: true, completion : nil)
         }
@@ -98,6 +100,8 @@ class ViewController: UIViewController {
     }
     
     func MyGyro(){
+//        AddTrick(trick: "full")
+//        AddTrick(trick: "kickflip")
         motion.gyroUpdateInterval = 0.0001
         motion.startGyroUpdates(to: OperationQueue.current!){(data, error)in
             if let trueData = data{
@@ -158,22 +162,28 @@ class ViewController: UIViewController {
     func KickFlip(type: String){
         if (type == "normal"){
             self.flipTracker.text = "kickflip"
+            AddTrick(trick: "kickflip")
+            self.scoreNum += 25
         } else {
-            self.flipTracker.text = "reverse kickflip"
+            self.flipTracker.text = "heelflip"
+            AddTrick(trick: "heelflip")
+            self.scoreNum += 50
         }
         self.yRotation = 0
-        self.scoreNum += 25
+        
         print(type + " kickflip")
     }
     func FrontFlip(){
         self.flipTracker.text = "frontflip"
         self.scoreNum += 100
+        AddTrick(trick: "frontflip")
         print("frontflip")
         self.xRotation = 0
     }
     func Full(){
         self.flipTracker.text="full"
         self.scoreNum+=100
+        AddTrick(trick: "Full")
         print("full")
         self.xRotation=0
         self.yRotation=0
@@ -182,6 +192,7 @@ class ViewController: UIViewController {
     func InwardFull(){
         self.flipTracker.text="Inward full"
         self.scoreNum+=100
+        AddTrick(trick: "Inward Full")
         print("Inward full")
         self.xRotation=0
         self.yRotation=0
@@ -201,16 +212,20 @@ class ViewController: UIViewController {
     }
     
     @IBAction func Reset() {
-        self.flipTracker.text = "Flip?"
+        self.flipTracker.text = "Do a Flip!"
         self.xRotation = 0
         self.yRotation=0
         self.zRotation=0
         self.scoreNum = 0
         self.score.text = "Score: \(self.scoreNum)"
         self.count = 15
-        self.timer = Timer()
-        self.timerCounting = true
+//        self.timer = Timer.scheduledTimer(timeInterval: 1, target: self, selector: #selector(timerCounter), userInfo: nil, repeats: true)
+//        self.timerCounting = true
         self.TimerLabel.text = self.makeTimeString(seconds: 15)
+        self.StartButton.setTitleColor(UIColor.systemBackground, for: .normal)
+        self.StartButton.tintColor = UIColor.systemBlue
+        self.StartButton.setTitle("START", for: .normal)
+        
     }
 //    func CheckTrick(xMax : Int, yMax : Int, zMax : Int){
 //        print("Maximums!! x:\(xMax) y:\(yMax) z: \(zMax)")
@@ -270,15 +285,31 @@ class ViewController: UIViewController {
         } else if(min[2] < -210){
             FlatSpin(type:"clockwise")
         }
+        // I need to add frontflip and backflip here.
         
     }
+    func AddTrick(trick :String){
+        tricksDone.append(trick)
+        trickList.text = trickList.text! + "\n" + trick
+    }
+    
+
     
     /*
      What I need to do:
      1. Trick recognition:
         Ideas:
         - measure the rotational statistics between zeros. Like whether the phone is moving for a long time or not
+        - Add sensitivity controls
         -
+     2. Home Screen:
+        - be able to select game mode, edit settings ect.
+     3. Game Modes:
+        - High score in x seconds
+        - Follow the leader? (it gives a list of tricks you have to do in that order)
+     4. Game Settings
+        - Left/Right handed modes
+        - Trick names, Skateboard, flips, other.
      */
     
 
